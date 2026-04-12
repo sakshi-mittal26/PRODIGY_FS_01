@@ -1,3 +1,4 @@
+from flask import render_template
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pymysql
@@ -10,6 +11,13 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+@app.route('/login-page')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/signup-page')
+def signup_page():
+    return render_template('signup.html')
 
 # function to connect to database
 def get_connection():

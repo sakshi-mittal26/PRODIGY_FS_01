@@ -11,18 +11,18 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# MySQL connection (from .env)
-conn = pymysql.connect(
-    host=os.getenv("DB_HOST"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    database=os.getenv("DB_NAME")
-)
+# function to connect to database
+def get_connection():
+    return pymysql.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME")
+    )
 
 @app.route('/')
 def home():
     return "Server is running!"
-
 
 @app.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
@@ -35,7 +35,9 @@ def signup():
 
     hashed_password = generate_password_hash(password)
 
+    conn = get_connection()
     cursor = conn.cursor()
+
     try:
         cursor.execute(
             "INSERT INTO users (email, password) VALUES (%s, %s)",
@@ -45,7 +47,8 @@ def signup():
         return jsonify({"message": "User registered successfully"}), 201
     except:
         return jsonify({"message": "User already exists"}), 400
-
+    finally:
+        conn.close()
 
 @app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
@@ -56,20 +59,22 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
+    conn = get_connection()
     cursor = conn.cursor()
+
     cursor.execute("SELECT password FROM users WHERE email=%s", (email,))
     user = cursor.fetchone()
+
+    conn.close()
 
     if user and check_password_hash(user[0], password):
         return jsonify({"message": "Login successful"}), 200
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
-
 @app.route('/dashboard')
 def dashboard():
     return "Welcome to protected page"
 
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

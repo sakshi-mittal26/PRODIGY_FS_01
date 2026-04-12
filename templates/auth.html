@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2 id="title">Signup</h2>
+
+<input type="email" id="email" placeholder="Email"><br><br>
+<input type="password" id="password" placeholder="Password"><br><br>
+
+<button onclick="submit()">Continue</button>
+
+<p id="msg"></p>
+
+<script>
+let mode = "signup"; // default
+
+function submit() {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    if (mode === "signup") {
+        fetch("http://127.0.0.1:5000/signup", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ email, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.message.includes("successfully")) {
+                msg.innerText = "Signup successful  Please login";
+                mode = "login";
+                title.innerText = "Login";
+            } else {
+                msg.innerText = "User exists. Please login ";
+                mode = "login";
+                title.innerText = "Login";
+            }
+        });
+    }
+
+    else {
+        fetch("http://127.0.0.1:5000/login", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ email, password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            msg.innerText = data.message;
+            if (data.message === "Login successful") {
+                window.location.href = "http://127.0.0.1:5000/dashboard";
+            }
+        });
+    }
+}
+
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const msg = document.getElementById("msg");
+const title = document.getElementById("title");
+</script>
+
+</body>
+</html>

@@ -1,16 +1,29 @@
-from flask import render_template
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request
 from flask_cors import CORS
 import pymysql
 import os
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+# DB connection function
+def get_connection():
+    return pymysql.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
+@app.route('/')
+def home():
+    return render_template('login.html')
+
 @app.route('/login-page')
 def login_page():
     return render_template('login.html')
@@ -19,70 +32,57 @@ def login_page():
 def signup_page():
     return render_template('signup.html')
 
-# function to connect to database
-def get_connection():
-    return pymysql.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME")
-    )
-
-@app.route('/')
-def home():
-    return "Server is running!"
-
-@app.route('/signup', methods=['POST', 'OPTIONS'])
+@app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if request.method == 'OPTIONS':
-        return '', 200
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
 
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
+        hashed = generate_password_hash(password)
 
-    hashed_password = generate_password_hash(password)
+        conn = get_connection()
+        cur = conn.cursor()
 
-    conn = get_connection()
-    cursor = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO users (email, password) VALUES (%s, %s)",
+                (email, hashed)
+            )
+            conn.commit()
+            message = "Registered successfully"
+        except:
+            message = "User already exists"
+        finally:
+            conn.close()
 
-    try:
-        cursor.execute(
-            "INSERT INTO users (email, password) VALUES (%s, %s)",
-            (email, hashed_password)
-        )
-        conn.commit()
-        return jsonify({"message": "User registered successfully"}), 201
-    except:
-        return jsonify({"message": "User already exists"}), 400
-    finally:
-        conn.close()
+        return render_template('signup.html', message=message)
 
-@app.route('/login', methods=['POST', 'OPTIONS'])
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['POST'])
 def login():
-    if request.method == 'OPTIONS':
-        return '', 200
-
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
+    email = request.form.get('email')
+    password = request.form.get('password')
 
     conn = get_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    cursor.execute("SELECT password FROM users WHERE email=%s", (email,))
-    user = cursor.fetchone()
+    cur.execute("SELECT password FROM users WHERE email=%s", (email,))
+    user = cur.fetchone()
 
     conn.close()
 
-    if user and check_password_hash(user[0], password):
-        return jsonify({"message": "Login successful"}), 200
+    if user and check_password_hash(user['password'], password):
+        return render_template('login.html', message="Login successful")
     else:
-        return jsonify({"message": "Invalid credentials"}), 401
+        return render_template('login.html', message="Invalid credentials")
+
 
 @app.route('/dashboard')
 def dashboard():
     return "Welcome to protected page"
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

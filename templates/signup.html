@@ -2,34 +2,66 @@
 <html>
 <head>
     <title>Signup</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 300px;
+        }
+
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #ff7e5f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ff4b2b;
+        }
+
+        .msg {
+            margin-top: 10px;
+            color: green;
+        }
+    </style>
 </head>
 <body>
+
+<div class="box">
     <h2>Signup</h2>
 
-    <input type="email" id="email" placeholder="Email"><br><br>
-    <input type="password" id="password" placeholder="Password"><br><br>
+    <form method="POST" action="/signup">
+        <input type="email" name="email" placeholder="Enter Email" required>
+        <input type="password" name="password" placeholder="Enter Password" required>
+        <button type="submit">Sign Up</button>
+    </form>
 
-    <button onclick="signup()">Sign Up</button>
+    <p class="msg">{{ message }}</p>
+</div>
 
-    <p id="msg"></p>
-
-    <script>
-        function signup() {
-            fetch("http://127.0.0.1:5000/signup", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    email: document.getElementById("email").value,
-                    password: document.getElementById("password").value
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById("msg").innerText = data.message;
-            });
-        }
-    </script>
 </body>
 </html>

@@ -1,36 +1,32 @@
 from flask import Flask, render_template, request
 from flask_cors import CORS
-import pymysql
+import sqlite3
 import os
-from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# DB connection function
+# DB connection (SQLite)
 def get_connection():
-    return pymysql.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        cursorclass=pymysql.cursors.DictCursor
-    )
+    conn = sqlite3.connect("database.db")
+    return conn
+
 
 @app.route('/')
 def home():
     return render_template('login.html')
 
+
 @app.route('/login-page')
 def login_page():
     return render_template('login.html')
 
+
 @app.route('/signup-page')
 def signup_page():
     return render_template('signup.html')
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -43,9 +39,12 @@ def signup():
         conn = get_connection()
         cur = conn.cursor()
 
+        # create table if not exists
+        cur.execute("CREATE TABLE IF NOT EXISTS users (email TEXT PRIMARY KEY, password TEXT)")
+
         try:
             cur.execute(
-                "INSERT INTO users (email, password) VALUES (%s, %s)",
+                "INSERT INTO users (email, password) VALUES (?, ?)",
                 (email, hashed)
             )
             conn.commit()
@@ -68,12 +67,12 @@ def login():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT password FROM users WHERE email=%s", (email,))
+    cur.execute("SELECT password FROM users WHERE email=?", (email,))
     user = cur.fetchone()
 
     conn.close()
 
-    if user and check_password_hash(user['password'], password):
+    if user and check_password_hash(user[0], password):
         return render_template('login.html', message="Login successful")
     else:
         return render_template('login.html', message="Invalid credentials")
@@ -85,5 +84,4 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run()
